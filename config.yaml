@@ -1,9 +1,9 @@
 mqtt:
-  broker: "tcp://mosquitto:1883"
-  client_id: "helius-collector"
+  broker: "tcp://192.168.110.50:1883"
+  client_id: "helius-collector-test"
 
 database:
-  dsn: "postgres://helius:helius@postgres:5432/helius?sslmode=disable"
+  dsn: "postgres://helius:helius@localhost:5436/helius?sslmode=disable"
 
 sensors:
   # ── Temperature / Humidity ──────────────────────────────────────────────────
