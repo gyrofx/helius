@@ -23,6 +23,7 @@ services:
 
   helius:
     build: .
+    command: serve
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,6 +32,16 @@ services:
     volumes:
       - ./config.yaml:/config.yaml:ro
     restart: unless-stopped
+
+  aggregate:
+    build: .
+    command: aggregate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./config.yaml:/config.yaml:ro
+    restart: "no"  # run once; trigger via cron: docker compose run --rm aggregate
 
 volumes:
   postgres_data:

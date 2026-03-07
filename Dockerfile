@@ -9,3 +9,4 @@ FROM alpine:3.19
 COPY --from=builder /app/helius /helius
 COPY config.yaml /config.yaml
 ENTRYPOINT ["/helius"]
+CMD ["serve"]
