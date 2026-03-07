@@ -46,21 +46,23 @@ func main() {
 	opts := mqtt.NewClientOptions().
 		AddBroker(cfg.MQTT.Broker).
 		SetClientID(cfg.MQTT.ClientID).
-		SetAutoReconnect(true)
+		SetAutoReconnect(true).
+		SetOnConnectHandler(func(c mqtt.Client) {
+			for _, h := range cfg.Handlers {
+				handler := collector.MakeHandler(pool, h)
+				if tok := c.Subscribe(h.Topic, 1, handler); tok.Wait() && tok.Error() != nil {
+					log.Printf("subscribe %s: %v", h.Topic, tok.Error())
+					continue
+				}
+				log.Printf("subscribed: %s → %s", h.Topic, h.Table)
+			}
+		})
 
 	client := mqtt.NewClient(opts)
 	if tok := client.Connect(); tok.Wait() && tok.Error() != nil {
 		log.Fatalf("mqtt connect: %v", tok.Error())
 	}
 	defer client.Disconnect(250)
-
-	for _, h := range cfg.Handlers {
-		handler := collector.MakeHandler(pool, h)
-		if tok := client.Subscribe(h.Topic, 1, handler); tok.Wait() && tok.Error() != nil {
-			log.Fatalf("subscribe %s: %v", h.Topic, tok.Error())
-		}
-		log.Printf("subscribed: %s → %s", h.Topic, h.Table)
-	}
 
 	log.Println("helius running — waiting for messages")
 
