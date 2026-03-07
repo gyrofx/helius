@@ -7,9 +7,9 @@ import (
 )
 
 type Config struct {
-	MQTT     MQTTConfig     `yaml:"mqtt"`
-	Database DatabaseConfig `yaml:"database"`
-	Sensors  []SensorDef    `yaml:"sensors"`
+	MQTT     MQTTConfig      `yaml:"mqtt"`
+	Database DatabaseConfig  `yaml:"database"`
+	Sensors  []SensorDef     `yaml:"sensors"`
 	Handlers []HandlerConfig `yaml:"handlers"`
 }
 
@@ -35,6 +35,7 @@ type HandlerConfig struct {
 	Channel     *int              `yaml:"channel,omitempty"`
 	Fields      map[string]string `yaml:"fields,omitempty"`
 	ValueColumn string            `yaml:"value_column,omitempty"` // payload is a raw float → insert into this column
+	Throttle    string            `yaml:"throttle,omitempty"`     // min interval between inserts, e.g. "30s"
 }
 
 func Load(path string) (*Config, error) {

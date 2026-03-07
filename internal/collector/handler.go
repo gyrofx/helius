@@ -7,6 +7,8 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,7 +17,30 @@ import (
 )
 
 func MakeHandler(pool *pgxpool.Pool, hcfg config.HandlerConfig) mqtt.MessageHandler {
+	var (
+		throttleMu  sync.Mutex
+		lastInsert  time.Time
+		minInterval time.Duration
+	)
+	if hcfg.Throttle != "" {
+		var err error
+		minInterval, err = time.ParseDuration(hcfg.Throttle)
+		if err != nil {
+			log.Printf("topic %s: invalid throttle %q: %v — throttling disabled", hcfg.Topic, hcfg.Throttle, err)
+		}
+	}
+
 	return func(_ mqtt.Client, msg mqtt.Message) {
+		if minInterval > 0 {
+			throttleMu.Lock()
+			if time.Since(lastInsert) < minInterval {
+				throttleMu.Unlock()
+				log.Printf("topic %s: throttled message received, skipping insert", hcfg.Topic)
+				return
+			}
+			lastInsert = time.Now()
+			throttleMu.Unlock()
+		}
 		log.Printf("topic %s: received payload: %s", hcfg.Topic, msg.Payload())
 		cols := []string{"sensor_id"}
 		params := []any{hcfg.SensorID}

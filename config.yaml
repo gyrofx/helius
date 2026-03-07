@@ -122,46 +122,89 @@ handlers:
       rh: "humidity_pct"
 
   # ── Shelly EM3 Gen1 — 3-phase electricity meter ──────────────────────────────
-  # payload: {"power":500.0,"reactive":-10.0,"voltage":230.1,"is_valid":true,"total":12345.6,"total_returned":0.0}
-  - topic: "shellies/shellyem3-34945475791E/emeter/0/status"
+  # Gen1 publishes individual float values per metric topic (no JSON status)
+  - topic: "shellies/shellyem3-34945475791E/emeter/0/power"
     table: "energy_readings"
     sensor_id: "shelly_em3_main"
     channel: 0
-    fields:
-      power:   "power_w"
-      total:   "energy_wh"
-      voltage: "voltage_v"
-      current: "current_a"
+    value_column: "power_w"
+    throttle: "15s"
 
-  - topic: "shellies/shellyem3-34945475791E/emeter/1/status"
+  - topic: "shellies/shellyem3-34945475791E/emeter/0/voltage"
+    table: "energy_readings"
+    sensor_id: "shelly_em3_main"
+    channel: 0
+    value_column: "voltage_v"
+    throttle: "15s"
+
+  - topic: "shellies/shellyem3-34945475791E/emeter/0/total"
+    table: "energy_readings"
+    sensor_id: "shelly_em3_main"
+    channel: 0
+    value_column: "energy_wh"
+    throttle: "15s"
+
+  - topic: "shellies/shellyem3-34945475791E/emeter/1/power"
     table: "energy_readings"
     sensor_id: "shelly_em3_main"
     channel: 1
-    fields:
-      power:   "power_w"
-      total:   "energy_wh"
-      voltage: "voltage_v"
-      current: "current_a"
+    value_column: "power_w"
+    throttle: "15s"
 
-  - topic: "shellies/shellyem3-34945475791E/emeter/2/status"
+  - topic: "shellies/shellyem3-34945475791E/emeter/1/voltage"
+    table: "energy_readings"
+    sensor_id: "shelly_em3_main"
+    channel: 1
+    value_column: "voltage_v"
+    throttle: "15s"
+
+  - topic: "shellies/shellyem3-34945475791E/emeter/1/total"
+    table: "energy_readings"
+    sensor_id: "shelly_em3_main"
+    channel: 1
+    value_column: "energy_wh"
+    throttle: "15s"
+
+  - topic: "shellies/shellyem3-34945475791E/emeter/2/power"
     table: "energy_readings"
     sensor_id: "shelly_em3_main"
     channel: 2
-    fields:
-      power:   "power_w"
-      total:   "energy_wh"
-      voltage: "voltage_v"
-      current: "current_a"
+    value_column: "power_w"
+    throttle: "15s"
+
+  - topic: "shellies/shellyem3-34945475791E/emeter/2/voltage"
+    table: "energy_readings"
+    sensor_id: "shelly_em3_main"
+    channel: 2
+    value_column: "voltage_v"
+    throttle: "15s"
+
+  - topic: "shellies/shellyem3-34945475791E/emeter/2/total"
+    table: "energy_readings"
+    sensor_id: "shelly_em3_main"
+    channel: 2
+    value_column: "energy_wh"
+    throttle: "15s"
 
   # ── Shelly EM Gen1 — balcony solar (single phase) ────────────────────────────
-  - topic: "shellies/solar-balcony/emeter/0/status"
+  # Gen1 publishes individual float values per metric topic (no JSON status)
+  - topic: "shellies/solar-balcony/emeter/0/power"
     table: "energy_readings"
     sensor_id: "solar_balcony"
-    fields:
-      power:   "power_w"
-      total:   "energy_wh"
-      voltage: "voltage_v"
-      current: "current_a"
+    value_column: "power_w"
+    throttle: "30s"
+
+  - topic: "shellies/solar-balcony/emeter/0/voltage"
+    table: "energy_readings"
+    sensor_id: "solar_balcony"
+    value_column: "voltage_v"
+    throttle: "30s"
+
+  - topic: "shellies/solar-balcony/emeter/0/total"
+    table: "energy_readings"
+    sensor_id: "solar_balcony"
+    value_column: "energy_wh"
+    throttle: "30s"
 
   # ── Shelly PM Mini Gen2 — payload: {"id":0,"apower":114.5,"voltage":230.2,"current":0.498,...} ──
   - topic: "shellypmmini-543204826014/status/pm1:0"

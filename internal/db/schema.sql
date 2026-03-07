@@ -98,6 +98,11 @@ BEGIN
 END$$;
 
 GRANT CONNECT ON DATABASE helius TO grafana;
+
+-- Partial indexes for sparse energy_readings rows (Gen1 Shelly per-metric inserts)
+CREATE INDEX IF NOT EXISTS idx_energy_power   ON energy_readings (sensor_id, channel, recorded_at) WHERE power_w   IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_energy_voltage ON energy_readings (sensor_id, channel, recorded_at) WHERE voltage_v  IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_energy_wh      ON energy_readings (sensor_id, channel, recorded_at) WHERE energy_wh  IS NOT NULL;
 GRANT USAGE ON SCHEMA public TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO grafana;
