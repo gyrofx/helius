@@ -8,13 +8,19 @@ import (
 	"syscall"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/jackc/pgx/v5/pgxpool"
 
+	"helius/internal/aggregator"
 	"helius/internal/collector"
 	"helius/internal/config"
 	"helius/internal/db"
 )
 
 func main() {
+	if len(os.Args) < 2 {
+		log.Fatalf("usage: helius <serve|aggregate>")
+	}
+
 	cfg, err := config.Load("config.yaml")
 	if err != nil {
 		log.Fatalf("load config: %v", err)
@@ -32,6 +38,19 @@ func main() {
 		log.Fatalf("apply schema: %v", err)
 	}
 
+	switch os.Args[1] {
+	case "serve":
+		cmdServe(ctx, cfg, pool)
+	case "aggregate":
+		if err := aggregator.Run(ctx, pool); err != nil {
+			log.Fatalf("aggregate: %v", err)
+		}
+	default:
+		log.Fatalf("unknown command %q — use serve or aggregate", os.Args[1])
+	}
+}
+
+func cmdServe(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool) {
 	for _, s := range cfg.Sensors {
 		_, err := pool.Exec(ctx,
 			`INSERT INTO sensors (id, name, type) VALUES ($1, $2, $3)
