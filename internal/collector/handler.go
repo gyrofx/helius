@@ -16,6 +16,7 @@ import (
 
 func MakeHandler(pool *pgxpool.Pool, hcfg config.HandlerConfig) mqtt.MessageHandler {
 	return func(_ mqtt.Client, msg mqtt.Message) {
+		log.Printf("topic %s: received payload: %s", hcfg.Topic, msg.Payload())
 		cols := []string{"sensor_id"}
 		params := []any{hcfg.SensorID}
 
