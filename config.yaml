@@ -1,0 +1,210 @@
+mqtt:
+  broker: "tcp://mosquitto:1883"
+  client_id: "helius-collector"
+
+database:
+  dsn: "postgres://helius:helius@postgres:5432/helius?sslmode=disable"
+
+sensors:
+  # ── Temperature / Humidity ──────────────────────────────────────────────────
+  - id: "celler_room"
+    name: "Celler Room"
+    type: "temperature_sensor"
+
+  - id: "firstfloor"
+    name: "First Floor (sensor-temp-02)"
+    type: "temperature_sensor"
+
+  - id: "attic"
+    name: "Attic (sensor-temp-01)"
+    type: "temperature_sensor"
+
+  # Shelly Plus HT (Gen2) — temperature:0 and humidity:0 on separate topics
+  - id: "shelly_ht_floor2"
+    name: "Floor 2 Shelly Plus HT"
+    type: "temperature_sensor"
+
+  - id: "shelly_ht_timo"
+    name: "Timo's Room Shelly Plus HT"
+    type: "temperature_sensor"
+
+  - id: "shelly_ht_living"
+    name: "Living Room Shelly Plus HT"
+    type: "temperature_sensor"
+
+  # ── Energy meters ───────────────────────────────────────────────────────────
+  - id: "shelly_em3_main"
+    name: "Main Shelly EM3 (electricity)"
+    type: "energy_meter"
+
+  - id: "solar_balcony"
+    name: "Balcony Solar EM (Shelly EM)"
+    type: "energy_meter"
+
+  - id: "timo_power_outlet"
+    name: "Timo's Power Outlet (Shelly PM Mini)"
+    type: "energy_meter"
+
+  # ── Heat pump ───────────────────────────────────────────────────────────────
+  - id: "ovum_heatpump"
+    name: "Ovum Heat Pump"
+    type: "heat_pump"
+
+handlers:
+  # ── Celler room (ESPHome / custom firmware — plain float values) ─────────────
+  - topic: "rehalp/gas/sensor/celler_room_temperature/state"
+    table: "temperature_readings"
+    sensor_id: "celler_room"
+    value_column: "temperature_c"
+
+  - topic: "rehalp/gas/sensor/celler_room_humidity/state"
+    table: "temperature_readings"
+    sensor_id: "celler_room"
+    value_column: "humidity_pct"
+
+  # ── First floor (sensor-temp-02 — plain float values) ───────────────────────
+  - topic: "rehalp/sensor-temp-02/sensor/temperature/state"
+    table: "temperature_readings"
+    sensor_id: "firstfloor"
+    value_column: "temperature_c"
+
+  - topic: "rehalp/sensor-temp-02/sensor/humidity/state"
+    table: "temperature_readings"
+    sensor_id: "firstfloor"
+    value_column: "humidity_pct"
+
+  # ── Attic (sensor-temp-01 — plain float values) ──────────────────────────────
+  - topic: "rehalp/sensor-temp-01/sensor/temperature/state"
+    table: "temperature_readings"
+    sensor_id: "attic"
+    value_column: "temperature_c"
+
+  - topic: "rehalp/sensor-temp-01/sensor/humidity/state"
+    table: "temperature_readings"
+    sensor_id: "attic"
+    value_column: "humidity_pct"
+
+  # ── Shelly Plus HT Gen2 — payload: {"id":0,"tC":21.5,"tF":70.7} ─────────────
+  - topic: "shellyplusht-c049ef88f988/status/temperature:0"
+    table: "temperature_readings"
+    sensor_id: "shelly_ht_floor2"
+    fields:
+      tC: "temperature_c"
+
+  - topic: "shellyplusht-c049ef88f988/status/humidity:0"
+    table: "temperature_readings"
+    sensor_id: "shelly_ht_floor2"
+    fields:
+      rh: "humidity_pct"
+
+  - topic: "shellyplusht-d4d4da7d861c/status/temperature:0"
+    table: "temperature_readings"
+    sensor_id: "shelly_ht_timo"
+    fields:
+      tC: "temperature_c"
+
+  - topic: "shellyplusht-d4d4da7d861c/status/humidity:0"
+    table: "temperature_readings"
+    sensor_id: "shelly_ht_timo"
+    fields:
+      rh: "humidity_pct"
+
+  - topic: "shellyplusht-c049ef88e80c/status/temperature:0"
+    table: "temperature_readings"
+    sensor_id: "shelly_ht_living"
+    fields:
+      tC: "temperature_c"
+
+  - topic: "shellyplusht-c049ef88e80c/status/humidity:0"
+    table: "temperature_readings"
+    sensor_id: "shelly_ht_living"
+    fields:
+      rh: "humidity_pct"
+
+  # ── Shelly EM3 Gen1 — 3-phase electricity meter ──────────────────────────────
+  # payload: {"power":500.0,"reactive":-10.0,"voltage":230.1,"is_valid":true,"total":12345.6,"total_returned":0.0}
+  - topic: "shellies/shellyem3-34945475791E/emeter/0/status"
+    table: "energy_readings"
+    sensor_id: "shelly_em3_main"
+    channel: 0
+    fields:
+      power:   "power_w"
+      total:   "energy_wh"
+      voltage: "voltage_v"
+      current: "current_a"
+
+  - topic: "shellies/shellyem3-34945475791E/emeter/1/status"
+    table: "energy_readings"
+    sensor_id: "shelly_em3_main"
+    channel: 1
+    fields:
+      power:   "power_w"
+      total:   "energy_wh"
+      voltage: "voltage_v"
+      current: "current_a"
+
+  - topic: "shellies/shellyem3-34945475791E/emeter/2/status"
+    table: "energy_readings"
+    sensor_id: "shelly_em3_main"
+    channel: 2
+    fields:
+      power:   "power_w"
+      total:   "energy_wh"
+      voltage: "voltage_v"
+      current: "current_a"
+
+  # ── Shelly EM Gen1 — balcony solar (single phase) ────────────────────────────
+  - topic: "shellies/solar-balcony/emeter/0/status"
+    table: "energy_readings"
+    sensor_id: "solar_balcony"
+    fields:
+      power:   "power_w"
+      total:   "energy_wh"
+      voltage: "voltage_v"
+      current: "current_a"
+
+  # ── Shelly PM Mini Gen2 — payload: {"id":0,"apower":114.5,"voltage":230.2,"current":0.498,...} ──
+  - topic: "shellypmmini-543204826014/status/pm1:0"
+    table: "energy_readings"
+    sensor_id: "timo_power_outlet"
+    fields:
+      apower:  "power_w"
+      voltage: "voltage_v"
+      current: "current_a"
+
+  # ── Ovum heat pump ───────────────────────────────────────────────────────────
+  - topic: "heatpump/status"
+    table: "heatpump_readings"
+    sensor_id: "ovum_heatpump"
+    fields:
+      ovum_inverter_rps:              "inverter_rps"
+      ovum_inverter_power:            "inverter_power"
+      ovum_drive_temperature:         "drive_temperature"
+      ovum_running_time:              "running_time"
+      ovum_working_hours:             "working_hours"
+      ovum_heating_power:             "heating_power"
+      ovum_weekly_heating_energy:     "weekly_heating_energy"
+      ovum_monthly_heating_energy:    "monthly_heating_energy"
+      ovum_yearly_heating_energy:     "yearly_heating_energy"
+      ovum_total_heating_energy:      "total_heating_energy"
+      ovum_cop_weekly:                "cop_weekly"
+      ovum_cop_monthly:               "cop_monthly"
+      ovum_cop_yearly:                "cop_yearly"
+      ovum_cop_total:                 "cop_total"
+      ovum_ambient_temp_avg:          "ambient_temp_avg"
+      ovum_outdoor_temp:              "outdoor_temp"
+      ovum_controller_temp:           "controller_temp"
+      ovum_dhw_tank_upper_temp:       "dhw_tank_upper_temp"
+      ovum_dhw_tank_middle_temp:      "dhw_tank_middle_temp"
+      ovum_dhw_tank_lower_temp:       "dhw_tank_lower_temp"
+      ovum_ground_source_in:          "ground_source_in"
+      ovum_ground_source_out:         "ground_source_out"
+      ovum_ground_source_pump:        "ground_source_pump"
+      ovum_heat_circle_1_flow_temp:   "heat_circle_1_flow_temp"
+      ovum_heat_circle_1_return_temp: "heat_circle_1_return_temp"
+      ovum_heat_circle_1_return_set_temp: "heat_circle_1_return_set_temp"
+      ovum_heat_circle_1_pump:        "heat_circle_1_pump"
+      ovum_tap_water_temp:            "tap_water_temp"
+      ovum_tap_act_temp:              "tap_act_temp"
+      ovum_tap_pump_min:              "tap_pump_min"
+      ovum_tap_pump_percent:          "tap_pump_percent"
