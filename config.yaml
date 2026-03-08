@@ -67,6 +67,19 @@ aggregations:
   #   method: "integrate"
   #   integrate_divisor: 3600   # W·s → Wh
 
+  # ── Heat pump — integrate instantaneous power readings into Wh ───────────────
+  - name: "heatpump_inverter_wh"
+    source_table: "heatpump_readings"
+    source_column: "inverter_power"
+    method: "integrate"
+    integrate_divisor: 3600   # W·s → Wh
+
+  - name: "heatpump_heating_wh"
+    source_table: "heatpump_readings"
+    source_column: "heating_power"
+    method: "integrate"
+    integrate_divisor: 3600   # W·s → Wh
+
 handlers:
   # ── Celler room (ESPHome / custom firmware — plain float values) ─────────────
   - topic: "rehalp/gas/sensor/celler_room_temperature/state"
