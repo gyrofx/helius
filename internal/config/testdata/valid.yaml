@@ -1,0 +1,39 @@
+mqtt:
+  broker: "tcp://localhost:1883"
+  client_id: "test-client"
+
+database:
+  dsn: "postgres://user:pass@localhost:5432/testdb?sslmode=disable"
+
+sensors:
+  - id: "sensor1"
+    name: "Sensor One"
+    type: "temperature_sensor"
+  - id: "sensor2"
+    name: "Sensor Two"
+    type: "energy_meter"
+
+handlers:
+  - topic: "home/temp/sensor1"
+    table: "temperature_readings"
+    sensor_id: "sensor1"
+    fields:
+      temperature: "temperature_c"
+      humidity: "humidity_pct"
+  - topic: "home/energy/raw"
+    table: "energy_readings"
+    sensor_id: "sensor2"
+    value_column: "power_w"
+    throttle: "30s"
+
+aggregations:
+  - name: "energy_wh"
+    source_table: "energy_readings"
+    source_column: "energy_wh"
+    channel_column: "channel"
+    method: "delta"
+  - name: "solar_wh"
+    source_table: "solar_readings"
+    source_column: "power_w"
+    method: "integrate"
+    integrate_divisor: 3600

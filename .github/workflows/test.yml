@@ -1,0 +1,38 @@
+name: test
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: helius
+          POSTGRES_USER: helius
+          POSTGRES_PASSWORD: helius
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U helius -d helius"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgres://helius:helius@localhost:5432/helius?sslmode=disable
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: go test
+        run: go test -timeout 2m ./...
