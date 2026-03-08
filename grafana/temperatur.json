@@ -269,7 +269,10 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PDE6A885CF4E31BBE"
+      },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "continuous-BlYlRd" },
@@ -314,14 +317,25 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"firstfloor_temperature\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Temperatur\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n  AVG(temperature_c) \nFROM \n  temperature_readings \nWHERE \n  sensor_id = 'firstfloor' \n  AND temperature_c IS NOT NULL\nLIMIT 1",
           "refId": "A"
         },
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "hide": false,
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"firstfloor_humidity\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Feuchtigkeit\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n  AVG(humidity_pct) \nFROM \n  temperature_readings \nWHERE \n  sensor_id = 'firstfloor' \n  AND humidity_pct IS NOT NULL\nLIMIT 1",
           "refId": "B"
         }
       ],
@@ -329,7 +343,10 @@
       "type": "gauge"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PDE6A885CF4E31BBE"
+      },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -398,14 +415,25 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"firstfloor_temperature\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Temperatur\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(recorded_at, $__interval),\n  AVG(temperature_c) AS temperature_c\nFROM\n  temperature_readings\nWHERE\n  sensor_id = 'firstfloor'\n  AND $__timeFilter(recorded_at)\n  AND temperature_c IS NOT NULL\nGROUP BY 1\nORDER BY 1 ASC",
           "refId": "A"
         },
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "hide": false,
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"firstfloor_humidity\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Feuchtigkeit\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(recorded_at, $__interval),\n  AVG(humidity_pct) AS humidity_pct\nFROM\n  temperature_readings\nWHERE\n  sensor_id = 'firstfloor'\n  AND $__timeFilter(recorded_at)\n  AND humidity_pct IS NOT NULL\nGROUP BY 1\nORDER BY 1 ASC",
           "refId": "B"
         }
       ],
@@ -413,7 +441,10 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PDE6A885CF4E31BBE"
+      },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "continuous-BlYlRd" },
@@ -458,14 +489,25 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"timo_temperature\")\r\n  |> filter(fn: (r) => r[\"_field\"] == \"tC\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Temperatur\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n  AVG(temperature_c) \nFROM \n  temperature_readings \nWHERE \n  sensor_id = 'shelly_ht_timo' \n  AND temperature_c IS NOT NULL\nLIMIT 1",
           "refId": "A"
         },
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "hide": false,
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"timo_humidity\")\r\n  |> filter(fn: (r) => r[\"_field\"] == \"rh\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Feuchtigkeit\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n  AVG(humidity_pct) \nFROM \n  temperature_readings \nWHERE \n  sensor_id = 'shelly_ht_timo' \n  AND humidity_pct IS NOT NULL\nLIMIT 1",
           "refId": "B"
         }
       ],
@@ -473,7 +515,10 @@
       "type": "gauge"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PDE6A885CF4E31BBE"
+      },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -542,14 +587,25 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"timo_temperature\")\r\n  |> filter(fn: (r) => r[\"_field\"] == \"tC\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Temperatur\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(recorded_at, $__interval),\n  AVG(temperature_c) AS temperature_c\nFROM\n  temperature_readings\nWHERE\n  sensor_id = 'shelly_ht_timo'\n  AND $__timeFilter(recorded_at)\n  AND temperature_c IS NOT NULL\nGROUP BY 1\nORDER BY 1 ASC",
           "refId": "A"
         },
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "hide": false,
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"timo_humidity\")\r\n  |> filter(fn: (r) => r[\"_field\"] == \"rh\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Feuchtigkeit\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(recorded_at, $__interval),\n  AVG(humidity_pct) AS humidity_pct\nFROM\n  temperature_readings\nWHERE\n  sensor_id = 'shelly_ht_timo'\n  AND $__timeFilter(recorded_at)\n  AND humidity_pct IS NOT NULL\nGROUP BY 1\nORDER BY 1 ASC",
           "refId": "B"
         }
       ],
@@ -565,7 +621,10 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PDE6A885CF4E31BBE"
+      },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "continuous-BlYlRd" },
@@ -610,14 +669,25 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"living-room_temperature\" and r[\"_field\"] == \"tC\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Temperatur\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n  AVG(temperature_c) \nFROM \n  temperature_readings \nWHERE \n  sensor_id = 'shelly_ht_living' \n  AND temperature_c IS NOT NULL\nLIMIT 1",
           "refId": "A"
         },
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "hide": false,
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"living-room_humidity\" and r[\"_field\"] == \"rh\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Feuchtigkeit\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n  AVG(humidity_pct) \nFROM \n  temperature_readings \nWHERE \n  sensor_id = 'shelly_ht_living' \n  AND humidity_pct IS NOT NULL\nLIMIT 1",
           "refId": "B"
         }
       ],
@@ -625,7 +695,10 @@
       "type": "gauge"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PDE6A885CF4E31BBE"
+      },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -644,7 +717,7 @@
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 5,
+            "pointSize": 1,
             "scaleDistribution": { "type": "linear" },
             "showPoints": "auto",
             "showValues": false,
@@ -689,14 +762,25 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"living-room_temperature\" and r[\"_field\"] == \"tC\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Temperatur\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(recorded_at, $__interval),\n  AVG(temperature_c) AS temperature_c\nFROM\n  temperature_readings\nWHERE\n  sensor_id = 'shelly_ht_living'\n  AND $__timeFilter(recorded_at)\n  AND temperature_c IS NOT NULL\nGROUP BY 1\nORDER BY 1 ASC",
           "refId": "A"
         },
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "hide": false,
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"living-room_humidity\" and r[\"_field\"] == \"rh\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Feuchtigkeit\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(recorded_at, $__interval),\n  AVG(humidity_pct) AS humidity_pct\nFROM\n  temperature_readings\nWHERE\n  sensor_id = 'shelly_ht_living'\n  AND $__timeFilter(recorded_at)\n  AND humidity_pct IS NOT NULL\nGROUP BY 1\nORDER BY 1 ASC",
           "refId": "B"
         }
       ],
@@ -712,7 +796,10 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PDE6A885CF4E31BBE"
+      },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -751,14 +838,25 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"celler_room_temperature\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Temperatur\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n  AVG(temperature_c) \nFROM \n  temperature_readings \nWHERE \n  sensor_id = 'celler_room' \n  AND temperature_c IS NOT NULL\nLIMIT 1",
           "refId": "A"
         },
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "hide": false,
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"celler_room_humidity\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Feuchtigkeit\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n  AVG(humidity_pct) \nFROM \n  temperature_readings \nWHERE \n  sensor_id = 'celler_room' \n  AND humidity_pct IS NOT NULL\nLIMIT 1",
           "refId": "B"
         }
       ],
@@ -766,7 +864,10 @@
       "type": "gauge"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PDE6A885CF4E31BBE"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -839,14 +940,25 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"celler_room_temperature\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Temperatur\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(recorded_at, $__interval),\n  AVG(temperature_c) AS temperature_c\nFROM\n  temperature_readings\nWHERE\n  sensor_id = 'celler_room'\n  AND $__timeFilter(recorded_at)\n  AND temperature_c IS NOT NULL\nGROUP BY 1\nORDER BY 1 ASC",
           "refId": "A"
         },
         {
-          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
-          "hide": false,
-          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"_measurement\"] == \"celler_room_humidity\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Feuchtigkeit\" }))",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(recorded_at, $__interval),\n  AVG(humidity_pct) AS humidity_pct\nFROM\n  temperature_readings\nWHERE\n  sensor_id = 'celler_room'\n  AND $__timeFilter(recorded_at)\n  AND humidity_pct IS NOT NULL\nGROUP BY 1\nORDER BY 1 ASC",
           "refId": "B"
         }
       ],
@@ -864,5 +976,5 @@
   "timezone": "",
   "title": "Temperatur",
   "uid": "c1uxvUL7z",
-  "version": 14
+  "version": 16
 }
