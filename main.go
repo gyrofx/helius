@@ -42,7 +42,7 @@ func main() {
 	case "serve":
 		cmdServe(ctx, cfg, pool)
 	case "aggregate":
-		if err := aggregator.Run(ctx, pool); err != nil {
+		if err := aggregator.Run(ctx, pool, cfg.Aggregations); err != nil {
 			log.Fatalf("aggregate: %v", err)
 		}
 	default:

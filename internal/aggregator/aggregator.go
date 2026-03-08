@@ -6,101 +6,176 @@ import (
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"helius/internal/config"
 )
 
 // Run backfills all missing daily summaries up to yesterday (local time) for
-// every (sensor_id, channel) pair that has energy_wh readings, then recomputes
-// the monthly totals for any affected months.
-func Run(ctx context.Context, pool *pgxpool.Pool) error {
-	now := time.Now()
-	yesterday := time.Date(now.Year(), now.Month(), now.Day()-1, 0, 0, 0, 0, now.Location())
-
-	pairs, err := sensorChannelPairs(ctx, pool)
-	if err != nil {
-		return fmt.Errorf("list sensor/channel pairs: %w", err)
-	}
-	if len(pairs) == 0 {
-		log.Println("aggregate: no energy_wh readings found, nothing to do")
+// every configured aggregation, then recomputes monthly totals.
+func Run(ctx context.Context, pool *pgxpool.Pool, cfgs []config.AggregationConfig) error {
+	if len(cfgs) == 0 {
+		log.Println("aggregate: no aggregations configured, nothing to do")
 		return nil
 	}
 
-	for _, p := range pairs {
-		missing, err := missingDays(ctx, pool, p.sensorID, p.channel, yesterday)
-		if err != nil {
-			return fmt.Errorf("missing days for %s ch%d: %w", p.sensorID, p.channel, err)
-		}
-		for _, day := range missing {
-			wh, err := computeDay(ctx, pool, p.sensorID, p.channel, day)
-			if err != nil {
-				return fmt.Errorf("compute day %s %s ch%d: %w", day, p.sensorID, p.channel, err)
-			}
-			if err := upsertSummary(ctx, pool, p.sensorID, p.channel, "day", day, wh); err != nil {
-				return fmt.Errorf("upsert daily %s %s ch%d: %w", day, p.sensorID, p.channel, err)
-			}
-			log.Printf("aggregate: %s ch%d %s → %.1f Wh", p.sensorID, p.channel, day.Format("2006-01-02"), wh)
+	now := time.Now()
+	yesterday := time.Date(now.Year(), now.Month(), now.Day()-1, 0, 0, 0, 0, now.Location())
+
+	for _, cfg := range cfgs {
+		if err := runOne(ctx, pool, cfg, yesterday); err != nil {
+			return fmt.Errorf("aggregation %q: %w", cfg.Name, err)
 		}
 	}
-
-	// Recompute monthly totals.
-	if err := recomputeMonthlyFromDaily(ctx, pool, pairs, yesterday); err != nil {
-		return fmt.Errorf("recompute monthly: %w", err)
-	}
-
 	return nil
 }
 
-type sensorChannel struct {
+// groupKey identifies one distinct time-series within an aggregation config.
+type groupKey struct {
+	// name is the value written to aggregation_summary.name.
+	// When a channel column is configured it has the form "configName_ch{N}".
+	name     string
 	sensorID string
-	channel  int
+	// channelVal is non-nil only when cfg.ChannelColumn is set.
+	channelVal *int
 }
 
-// sensorChannelPairs returns all distinct (sensor_id, channel) pairs that have
-// at least one non-null energy_wh reading.
-func sensorChannelPairs(ctx context.Context, pool *pgxpool.Pool) ([]sensorChannel, error) {
-	rows, err := pool.Query(ctx, `
-		SELECT DISTINCT sensor_id, channel
-		FROM energy_readings
-		WHERE energy_wh IS NOT NULL
-		ORDER BY sensor_id, channel
-	`)
+func runOne(ctx context.Context, pool *pgxpool.Pool, cfg config.AggregationConfig, yesterday time.Time) error {
+	tsCol := cfg.TimestampColumn
+	if tsCol == "" {
+		tsCol = "recorded_at"
+	}
+
+	keys, err := listGroupKeys(ctx, pool, cfg)
+	if err != nil {
+		return fmt.Errorf("list group keys: %w", err)
+	}
+	if len(keys) == 0 {
+		log.Printf("aggregate %q: no source rows found, skipping", cfg.Name)
+		return nil
+	}
+
+	for _, key := range keys {
+		missing, err := missingDays(ctx, pool, cfg, tsCol, key, yesterday)
+		if err != nil {
+			return fmt.Errorf("missing days for %q/%s: %w", key.name, key.sensorID, err)
+		}
+		for _, day := range missing {
+			val, err := computeDay(ctx, pool, cfg, tsCol, key, day)
+			if err != nil {
+				return fmt.Errorf("compute day %s %q/%s: %w", day.Format("2006-01-02"), key.name, key.sensorID, err)
+			}
+			if err := upsertSummary(ctx, pool, key, "day", day, val); err != nil {
+				return fmt.Errorf("upsert day %s %q/%s: %w", day.Format("2006-01-02"), key.name, key.sensorID, err)
+			}
+			log.Printf("aggregate: %q/%s %s → %.3f", key.name, key.sensorID, day.Format("2006-01-02"), val)
+		}
+	}
+
+	if err := recomputeMonthly(ctx, pool, keys, yesterday); err != nil {
+		return fmt.Errorf("recompute monthly: %w", err)
+	}
+	return nil
+}
+
+// listGroupKeys returns all distinct (sensor_id[, channel]) groups that have
+// at least one non-null source_column reading.
+func listGroupKeys(ctx context.Context, pool *pgxpool.Pool, cfg config.AggregationConfig) ([]groupKey, error) {
+	tableQ := pgx.Identifier{cfg.SourceTable}.Sanitize()
+	colQ := pgx.Identifier{cfg.SourceColumn}.Sanitize()
+
+	var (
+		rows pgx.Rows
+		err  error
+	)
+	if cfg.ChannelColumn != "" {
+		chanColQ := pgx.Identifier{cfg.ChannelColumn}.Sanitize()
+		rows, err = pool.Query(ctx, fmt.Sprintf(`
+			SELECT DISTINCT sensor_id, %s
+			FROM %s
+			WHERE %s IS NOT NULL
+			ORDER BY sensor_id, %s
+		`, chanColQ, tableQ, colQ, chanColQ))
+	} else {
+		rows, err = pool.Query(ctx, fmt.Sprintf(`
+			SELECT DISTINCT sensor_id
+			FROM %s
+			WHERE %s IS NOT NULL
+			ORDER BY sensor_id
+		`, tableQ, colQ))
+	}
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var pairs []sensorChannel
+	var keys []groupKey
 	for rows.Next() {
-		var p sensorChannel
-		if err := rows.Scan(&p.sensorID, &p.channel); err != nil {
-			return nil, err
+		if cfg.ChannelColumn != "" {
+			var sensorID string
+			var ch int
+			if err := rows.Scan(&sensorID, &ch); err != nil {
+				return nil, err
+			}
+			chCopy := ch
+			keys = append(keys, groupKey{
+				name:       fmt.Sprintf("%s_ch%d", cfg.Name, ch),
+				sensorID:   sensorID,
+				channelVal: &chCopy,
+			})
+		} else {
+			var sensorID string
+			if err := rows.Scan(&sensorID); err != nil {
+				return nil, err
+			}
+			keys = append(keys, groupKey{
+				name:     cfg.Name,
+				sensorID: sensorID,
+			})
 		}
-		pairs = append(pairs, p)
 	}
-	return pairs, rows.Err()
+	return keys, rows.Err()
 }
 
-// missingDays returns all local dates between the first reading date and
-// yesterday (inclusive) that are not yet in energy_summary as 'day' rows.
-func missingDays(ctx context.Context, pool *pgxpool.Pool, sensorID string, channel int, yesterday time.Time) ([]time.Time, error) {
+// missingDays returns all local dates between the earliest source reading and
+// yesterday (inclusive) that are not yet in aggregation_summary as 'day' rows.
+func missingDays(ctx context.Context, pool *pgxpool.Pool, cfg config.AggregationConfig, tsCol string, key groupKey, yesterday time.Time) ([]time.Time, error) {
+	tableQ := pgx.Identifier{cfg.SourceTable}.Sanitize()
+	colQ := pgx.Identifier{cfg.SourceColumn}.Sanitize()
+	tsColQ := pgx.Identifier{tsCol}.Sanitize()
+
+	// Find the date of the earliest non-null source reading.
 	var earliest time.Time
-	err := pool.QueryRow(ctx, `
-		SELECT DATE_TRUNC('day', MIN(recorded_at))
-		FROM energy_readings
-		WHERE sensor_id = $1 AND channel = $2 AND energy_wh IS NOT NULL
-	`, sensorID, channel).Scan(&earliest)
+	var err error
+	if key.channelVal != nil {
+		chanColQ := pgx.Identifier{cfg.ChannelColumn}.Sanitize()
+		err = pool.QueryRow(ctx, fmt.Sprintf(`
+			SELECT DATE_TRUNC('day', MIN(%s))
+			FROM %s
+			WHERE sensor_id = $1 AND %s = $2 AND %s IS NOT NULL
+		`, tsColQ, tableQ, chanColQ, colQ), key.sensorID, *key.channelVal).Scan(&earliest)
+	} else {
+		err = pool.QueryRow(ctx, fmt.Sprintf(`
+			SELECT DATE_TRUNC('day', MIN(%s))
+			FROM %s
+			WHERE sensor_id = $1 AND %s IS NOT NULL
+		`, tsColQ, tableQ, colQ), key.sensorID).Scan(&earliest)
+	}
 	if err != nil {
 		return nil, err
 	}
+
 	earliestLocal := earliest.In(time.Local)
 	earliestDay := time.Date(earliestLocal.Year(), earliestLocal.Month(), earliestLocal.Day(), 0, 0, 0, 0, time.Local)
 
-	// Collect all already-computed days.
+	// Collect already-computed day summaries for this series.
 	rows, err := pool.Query(ctx, `
-		SELECT period FROM energy_summary
-		WHERE sensor_id = $1 AND channel = $2 AND period_type = 'day'
+		SELECT period
+		FROM aggregation_summary
+		WHERE name = $1 AND sensor_id = $2 AND period_type = 'day'
 		  AND period >= $3 AND period <= $4
-	`, sensorID, channel, earliestDay, yesterday)
+	`, key.name, key.sensorID, earliestDay, yesterday)
 	if err != nil {
 		return nil, err
 	}
@@ -127,66 +202,119 @@ func missingDays(ctx context.Context, pool *pgxpool.Pool, sensorID string, chann
 	return missing, nil
 }
 
-// computeDay sums positive consecutive deltas of energy_wh for the given local
-// day, handling counter resets (e.g. device reboot) by ignoring negative jumps.
-func computeDay(ctx context.Context, pool *pgxpool.Pool, sensorID string, channel int, day time.Time) (float64, error) {
+// computeDay calculates the aggregated value for a single calendar day using
+// the method specified in cfg ("delta" or "integrate").
+func computeDay(ctx context.Context, pool *pgxpool.Pool, cfg config.AggregationConfig, tsCol string, key groupKey, day time.Time) (float64, error) {
 	dayStart := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, time.Local)
 	dayEnd := dayStart.AddDate(0, 0, 1)
 
-	var wh float64
-	err := pool.QueryRow(ctx, `
-		SELECT COALESCE(SUM(delta), 0)
-		FROM (
-			SELECT COALESCE(GREATEST(
-				energy_wh - LAG(energy_wh) OVER (ORDER BY recorded_at),
-				0
-			), 0) AS delta
-			FROM energy_readings
-			WHERE sensor_id = $1
-			  AND channel   = $2
-			  AND energy_wh IS NOT NULL
-			  AND recorded_at >= $3
-			  AND recorded_at <  $4
-		) sub
-	`, sensorID, channel, dayStart, dayEnd).Scan(&wh)
-	return wh, err
+	tableQ := pgx.Identifier{cfg.SourceTable}.Sanitize()
+	colQ := pgx.Identifier{cfg.SourceColumn}.Sanitize()
+	tsColQ := pgx.Identifier{tsCol}.Sanitize()
+
+	// Build the WHERE clause and args, varying by whether a channel is used.
+	var whereClause string
+	var args []any
+	if key.channelVal != nil {
+		chanColQ := pgx.Identifier{cfg.ChannelColumn}.Sanitize()
+		whereClause = fmt.Sprintf(
+			"sensor_id = $1 AND %s = $2 AND %s IS NOT NULL AND %s >= $3 AND %s < $4",
+			chanColQ, colQ, tsColQ, tsColQ,
+		)
+		args = []any{key.sensorID, *key.channelVal, dayStart, dayEnd}
+	} else {
+		whereClause = fmt.Sprintf(
+			"sensor_id = $1 AND %s IS NOT NULL AND %s >= $2 AND %s < $3",
+			colQ, tsColQ, tsColQ,
+		)
+		args = []any{key.sensorID, dayStart, dayEnd}
+	}
+
+	var val float64
+	var err error
+
+	switch cfg.Method {
+	case "delta":
+		// Sum positive consecutive deltas of a monotonically increasing counter.
+		// GREATEST(..., 0) ignores counter resets (e.g. device reboots).
+		// The outer COALESCE handles an empty result set.
+		sqlStr := fmt.Sprintf(`
+			SELECT COALESCE(SUM(delta), 0)
+			FROM (
+				SELECT COALESCE(GREATEST(
+					%s - LAG(%s) OVER (ORDER BY %s),
+					0
+				), 0) AS delta
+				FROM %s
+				WHERE %s
+			) sub
+		`, colQ, colQ, tsColQ, tableQ, whereClause)
+		err = pool.QueryRow(ctx, sqlStr, args...).Scan(&val)
+
+	case "integrate":
+		// Left-Riemann integration: each sample is assumed to hold until the
+		// next one. The last sample in the window has no LEAD → NULL, which
+		// SUM ignores, meaning the final partial interval up to dayEnd is
+		// dropped (small precision tradeoff, acceptable for daily summaries).
+		divisor := cfg.IntegrateDivisor
+		if divisor == 0 {
+			divisor = 1
+		}
+		sqlStr := fmt.Sprintf(`
+			SELECT COALESCE(SUM(%s * EXTRACT(EPOCH FROM next_ts - %s) / %g), 0)
+			FROM (
+				SELECT
+					%s,
+					%s,
+					LEAD(%s) OVER (ORDER BY %s) AS next_ts
+				FROM %s
+				WHERE %s
+			) sub
+			WHERE next_ts IS NOT NULL
+		`, colQ, tsColQ, divisor, colQ, tsColQ, tsColQ, tsColQ, tableQ, whereClause)
+		err = pool.QueryRow(ctx, sqlStr, args...).Scan(&val)
+
+	default:
+		return 0, fmt.Errorf("unknown method %q (want \"delta\" or \"integrate\")", cfg.Method)
+	}
+
+	return val, err
 }
 
-// upsertSummary inserts or updates a row in energy_summary.
-func upsertSummary(ctx context.Context, pool *pgxpool.Pool, sensorID string, channel int, periodType string, period time.Time, wh float64) error {
+// upsertSummary inserts or replaces a row in aggregation_summary.
+func upsertSummary(ctx context.Context, pool *pgxpool.Pool, key groupKey, periodType string, period time.Time, val float64) error {
 	_, err := pool.Exec(ctx, `
-		INSERT INTO energy_summary (sensor_id, channel, period_type, period, energy_wh)
+		INSERT INTO aggregation_summary (name, sensor_id, period_type, period, value)
 		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (sensor_id, channel, period_type, period)
-		DO UPDATE SET energy_wh = EXCLUDED.energy_wh
-	`, sensorID, channel, periodType, period.Format("2006-01-02"), wh)
+		ON CONFLICT (name, sensor_id, period_type, period)
+		DO UPDATE SET value = EXCLUDED.value
+	`, key.name, key.sensorID, periodType, period.Format("2006-01-02"), val)
 	return err
 }
 
-// recomputeMonthlyFromDaily recalculates monthly totals from daily summaries
-// for all (sensor_id, channel) pairs, for every month up to the current one.
-func recomputeMonthlyFromDaily(ctx context.Context, pool *pgxpool.Pool, pairs []sensorChannel, upTo time.Time) error {
-	for _, p := range pairs {
+// recomputeMonthly sums daily rows into monthly totals for every affected month.
+func recomputeMonthly(ctx context.Context, pool *pgxpool.Pool, keys []groupKey, upTo time.Time) error {
+	for _, key := range keys {
 		rows, err := pool.Query(ctx, `
-			SELECT DATE_TRUNC('month', period)::DATE AS month, SUM(energy_wh)
-			FROM energy_summary
-			WHERE sensor_id = $1 AND channel = $2 AND period_type = 'day'
+			SELECT DATE_TRUNC('month', period)::DATE AS month, SUM(value)
+			FROM aggregation_summary
+			WHERE name = $1 AND sensor_id = $2 AND period_type = 'day'
 			  AND period <= $3
 			GROUP BY month
 			ORDER BY month
-		`, p.sensorID, p.channel, upTo)
+		`, key.name, key.sensorID, upTo)
 		if err != nil {
 			return err
 		}
 
 		type monthRow struct {
 			month time.Time
-			wh    float64
+			val   float64
 		}
 		var months []monthRow
 		for rows.Next() {
 			var mr monthRow
-			if err := rows.Scan(&mr.month, &mr.wh); err != nil {
+			if err := rows.Scan(&mr.month, &mr.val); err != nil {
 				rows.Close()
 				return err
 			}
@@ -198,10 +326,10 @@ func recomputeMonthlyFromDaily(ctx context.Context, pool *pgxpool.Pool, pairs []
 		}
 
 		for _, mr := range months {
-			if err := upsertSummary(ctx, pool, p.sensorID, p.channel, "month", mr.month, mr.wh); err != nil {
-				return fmt.Errorf("upsert monthly %s ch%d %s: %w", p.sensorID, p.channel, mr.month.Format("2006-01"), err)
+			if err := upsertSummary(ctx, pool, key, "month", mr.month, mr.val); err != nil {
+				return fmt.Errorf("upsert monthly %q/%s %s: %w", key.name, key.sensorID, mr.month.Format("2006-01"), err)
 			}
-			log.Printf("aggregate: %s ch%d %s → %.1f Wh (monthly)", p.sensorID, p.channel, mr.month.Format("2006-01"), mr.wh)
+			log.Printf("aggregate: %q/%s %s → %.3f (monthly)", key.name, key.sensorID, mr.month.Format("2006-01"), mr.val)
 		}
 	}
 	return nil

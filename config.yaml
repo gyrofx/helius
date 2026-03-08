@@ -50,6 +50,23 @@ sensors:
     name: "Ovum Heat Pump"
     type: "heat_pump"
 
+aggregations:
+  # ── Electricity (Shelly energy meters — monotonically increasing Wh counter) ─
+  - name: "electricity_wh"
+    source_table: "energy_readings"
+    source_column: "energy_wh"
+    channel_column: "channel"
+    method: "delta"
+
+  # ── Electricity integrated from instantaneous power readings ─────────────────
+  # Uncomment if you want Wh derived from power_w instead of the odometer.
+  # - name: "electricity_wh_integrated"
+  #   source_table: "energy_readings"
+  #   source_column: "power_w"
+  #   channel_column: "channel"
+  #   method: "integrate"
+  #   integrate_divisor: 3600   # W·s → Wh
+
 handlers:
   # ── Celler room (ESPHome / custom firmware — plain float values) ─────────────
   - topic: "rehalp/gas/sensor/celler_room_temperature/state"

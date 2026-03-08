@@ -99,28 +99,42 @@ END$$;
 
 GRANT CONNECT ON DATABASE helius TO grafana;
 
--- Energy summaries by period (populated by `helius aggregate`)
--- period_type: 'day' | 'month'   period: start date of the day or month
-CREATE TABLE IF NOT EXISTS energy_summary (
+-- Generic aggregation summaries by period (populated by `helius aggregate`).
+-- name:        logical series name, e.g. "electricity_wh_ch0", "solar_wh_integrated"
+-- period_type: 'day' | 'month'
+-- period:      start date of the day or month
+CREATE TABLE IF NOT EXISTS aggregation_summary (
+    name        TEXT             NOT NULL,
     sensor_id   TEXT             NOT NULL REFERENCES sensors(id),
-    channel     SMALLINT         NOT NULL DEFAULT 0,
     period_type TEXT             NOT NULL,
     period      DATE             NOT NULL,
-    energy_wh   DOUBLE PRECISION NOT NULL,
-    PRIMARY KEY (sensor_id, channel, period_type, period)
+    value       DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (name, sensor_id, period_type, period)
 );
 
-GRANT SELECT ON energy_summary TO grafana;
+-- Partial indexes — one per period_type to serve fast range scans on period.
+-- The PK already covers exact (name, sensor_id, period_type, period) lookups.
+CREATE INDEX IF NOT EXISTS idx_agg_summary_day
+    ON aggregation_summary (name, sensor_id, period)
+    WHERE period_type = 'day';
 
--- Partial indexes for sparse energy_readings rows (Gen1 Shelly per-metric inserts)
+CREATE INDEX IF NOT EXISTS idx_agg_summary_month
+    ON aggregation_summary (name, sensor_id, period)
+    WHERE period_type = 'month';
+
+-- Partial indexes for sparse energy_readings rows (Gen1 Shelly per-metric inserts).
+-- Also serve as covering indexes for the aggregator's window-function queries.
 CREATE INDEX IF NOT EXISTS idx_energy_power   ON energy_readings (sensor_id, channel, recorded_at) WHERE power_w   IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_energy_voltage ON energy_readings (sensor_id, channel, recorded_at) WHERE voltage_v  IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_energy_wh      ON energy_readings (sensor_id, channel, recorded_at) WHERE energy_wh  IS NOT NULL;
 
--- Partial indexes for energy_summary — one per period_type for fast Grafana time-series queries
--- The PK covers exact lookups; these leaner indexes serve range scans on period for a fixed type.
-CREATE INDEX IF NOT EXISTS idx_energy_summary_day   ON energy_summary (sensor_id, channel, period) WHERE period_type = 'day';
-CREATE INDEX IF NOT EXISTS idx_energy_summary_month ON energy_summary (sensor_id, channel, period) WHERE period_type = 'month';
+-- Index for heatpump_readings time-series queries (Grafana + aggregator).
+CREATE INDEX IF NOT EXISTS idx_heatpump_sensor_time
+    ON heatpump_readings (sensor_id, recorded_at);
 GRANT USAGE ON SCHEMA public TO grafana;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafana;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO grafana;
+
+-- NOTE: drop the old energy_summary table once the aggregation_summary
+-- migration has been verified:
+--   DROP TABLE IF EXISTS energy_summary;
