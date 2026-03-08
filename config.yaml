@@ -58,15 +58,6 @@ aggregations:
     channel_column: "channel"
     method: "delta"
 
-  # ── Electricity integrated from instantaneous power readings ─────────────────
-  # Uncomment if you want Wh derived from power_w instead of the odometer.
-  # - name: "electricity_wh_integrated"
-  #   source_table: "energy_readings"
-  #   source_column: "power_w"
-  #   channel_column: "channel"
-  #   method: "integrate"
-  #   integrate_divisor: 3600   # W·s → Wh
-
   # ── Heat pump — integrate instantaneous power readings into Wh ───────────────
   - name: "heatpump_inverter_wh"
     source_table: "heatpump_readings"

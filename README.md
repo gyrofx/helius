@@ -60,7 +60,24 @@ handlers:
     sensor_id: "my_sensor"
     value_column: "temperature_c"
     throttle: "30s"   # optional: minimum interval between inserts
+
+aggregations:
+  # delta: sums positive increments of a monotonically increasing counter (e.g. Wh odometer)
+  - name: "electricity_wh"
+    source_table: "energy_readings"
+    source_column: "energy_wh"
+    channel_column: "channel"   # appends _ch0, _ch1, … to name
+    method: "delta"
+
+  # integrate: left-Riemann integral of an instantaneous value over time
+  - name: "heatpump_inverter_wh"
+    source_table: "heatpump_readings"
+    source_column: "inverter_power"
+    method: "integrate"
+    integrate_divisor: 3600   # W·s → Wh
 ```
+
+The aggregator discovers sensors automatically from the source table — no `sensor_id` field is needed in the aggregation config. Results are stored per-sensor in `aggregation_summary`.
 
 ### Handler types
 
@@ -83,17 +100,17 @@ Set `throttle: "30s"` (any Go duration) on any handler to drop messages arriving
 | `gas_readings` | Gas consumption (m³) |
 | `solar_readings` | Solar power, energy, battery |
 | `weather_readings` | Outdoor weather |
-| `energy_summary` | Pre-aggregated daily and monthly energy totals |
+| `aggregation_summary` | Pre-aggregated daily and monthly totals (energy, heat pump, …) |
 
-### energy_summary
+### aggregation_summary
 
-Populated by `helius aggregate`. Period types: `'day'`, `'month'`.
+Populated by `helius aggregate`. Period types: `'day'`, `'month'`. One row per `(name, sensor_id, period_type, period)`.
 
 ```sql
-SELECT period, energy_wh
-FROM energy_summary
-WHERE sensor_id = 'shelly_em3_main'
-  AND channel     = 0
+-- Daily electricity per sensor (all channels combined under a single name when channel_column is used)
+SELECT period, name, sensor_id, value
+FROM aggregation_summary
+WHERE name        = 'electricity_wh_ch0'
   AND period_type = 'day'
 ORDER BY period;
 ```
