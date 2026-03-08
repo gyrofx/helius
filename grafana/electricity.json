@@ -1,0 +1,767 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "datasource", "uid": "grafana" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 0,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 13,
+      "panels": [],
+      "title": "Strom",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 7, "x": 0, "y": 1 },
+      "id": 8,
+      "options": {
+        "displayMode": "lcd",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/0/power\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power1\" }))",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/1/power\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power2\" }))",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/2/power\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power3\" }))",
+          "refId": "C"
+        }
+      ],
+      "title": "Aktueller Stromverbrauch",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "include": ["Power2", "Power3", "Power1"],
+              "reducer": "sum"
+            },
+            "replaceFields": false
+          }
+        }
+      ],
+      "type": "bargauge"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "kwatth"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "power1" },
+            "properties": [{ "id": "displayName", "value": "Phase 1" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "power2" },
+            "properties": [{ "id": "displayName", "value": "Phase 2" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "power3" },
+            "properties": [{ "id": "displayName", "value": "Phase 3" }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 5, "x": 7, "y": 1 },
+      "id": 10,
+      "maxDataPoints": 2000,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: today(), stop: now())\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/0/power\" or r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/1/power\" or r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/2/power\")\r\n  |> integral(unit: 1s)\r\n  |> map(fn: (r) => ({_value: r._value / 3600000.0}))\r\n  |> sum()",
+          "refId": "A"
+        }
+      ],
+      "title": "Energy Today",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "kwatth"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "hideTimeOverride": false,
+      "id": 12,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "auto",
+        "showValue": "always",
+        "stacking": "normal",
+        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" },
+        "xField": "_time",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/0/power\")\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power0\" }))\r\n  |> aggregateWindow(every: 24h, fn: (tables=<-, column) =>\r\n\t\t(tables\r\n\t\t\t|> integral(unit: 1h)\r\n\t\t\t|> map(fn: (r) =>\r\n\t\t\t\t({r with _value: r._value / 1000.0, _field: \"kWh\", units: \"kWh\"}))))\r\n",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/1/power\")\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power2\" }))\r\n  |> aggregateWindow(every: 24h, fn: (tables=<-, column) =>\r\n\t\t(tables\r\n\t\t\t|> integral(unit: 1h)\r\n\t\t\t|> map(fn: (r) =>\r\n\t\t\t\t({r with _value: r._value / 1000.0, _field: \"kWh\", units: \"kWh\"}))))\r\n",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/2/power\")\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power3\" }))\r\n  |> aggregateWindow(every: 24h, fn: (tables=<-, column) =>\r\n\t\t(tables\r\n\t\t\t|> integral(unit: 1h)\r\n\t\t\t|> map(fn: (r) =>\r\n\t\t\t\t({r with _value: r._value / 1000.0, _field: \"kWh\", units: \"kWh\"}))))",
+          "refId": "C"
+        }
+      ],
+      "timeFrom": "now/M",
+      "title": "Strom Verlauf aktueller Monat",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "kwh per Hour",
+            "mode": "reduceRow",
+            "reduce": { "include": [], "reducer": "sum" },
+            "replaceFields": true
+          }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/0/power\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power1\" }))\r\n",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/1/power\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power2\" }))\r\n",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/2/power\")\r\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power3\" }))\r\n",
+          "refId": "C"
+        }
+      ],
+      "title": "Strom Verlauf",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "PowerTot",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": ["Power1", "Power2", "Power3"],
+              "reducer": "sum"
+            }
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "kwatth"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
+      "id": 11,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "never",
+        "stacking": "normal",
+        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/0/power\")\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power0\" }))\r\n  |> aggregateWindow(every: 1h, fn: (tables=<-, column) =>\r\n\t\t(tables\r\n\t\t\t|> integral(unit: 1h)\r\n\t\t\t|> map(fn: (r) =>\r\n\t\t\t\t({r with _value: r._value / 1000.0, _field: \"kWh\", units: \"kWh\"}))))\r\n",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/1/power\")\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power2\" }))\r\n  |> aggregateWindow(every: 1h, fn: (tables=<-, column) =>\r\n\t\t(tables\r\n\t\t\t|> integral(unit: 1h)\r\n\t\t\t|> map(fn: (r) =>\r\n\t\t\t\t({r with _value: r._value / 1000.0, _field: \"kWh\", units: \"kWh\"}))))\r\n",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/shellyem3-34945475791E/emeter/2/power\")\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> map(fn: (r) => ({ r with _field:\"Power3\" }))\r\n  |> aggregateWindow(every: 1h, fn: (tables=<-, column) =>\r\n\t\t(tables\r\n\t\t\t|> integral(unit: 1h)\r\n\t\t\t|> map(fn: (r) =>\r\n\t\t\t\t({r with _value: r._value / 1000.0, _field: \"kWh\", units: \"kWh\"}))))",
+          "refId": "C"
+        }
+      ],
+      "title": "Strom Verlauf",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "kwh per Hour",
+            "mode": "reduceRow",
+            "reduce": { "include": [], "reducer": "sum" },
+            "replaceFields": true
+          }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "id": 14,
+      "panels": [],
+      "title": "Solar",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PDE6A885CF4E31BBE"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "watt"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byFrameRefID", "options": "B" },
+            "properties": [{ "id": "unit", "value": "watth" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "energy" },
+            "properties": [{ "id": "displayName", "value": "Energy" }]
+          },
+          {
+            "matcher": { "id": "byFrameRefID", "options": "B" },
+            "properties": [{ "id": "max", "value": 3 }]
+          },
+          {
+            "matcher": { "id": "byFrameRefID", "options": "B" },
+            "properties": [{ "id": "unit", "value": "kwatth" }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+      "id": 18,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false,
+        "sizing": "auto"
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "helius",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroupAlias(recorded_at, $__interval),\n  AVG(power_w) AS \"Power\"\nFROM\n  energy_readings\nWHERE\n  sensor_id = 'solar_balcony'\n  AND $__timeFilter(recorded_at)\n  AND power_w IS NOT NULL\nGROUP BY 1\nORDER BY 1 ASC\n",
+          "refId": "A",
+          "sql": {
+            "columns": [{ "parameters": [], "type": "function" }],
+            "groupBy": [
+              { "property": { "type": "string" }, "type": "groupBy" }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "dataset": "helius",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n  SUM(power_w * seconds_to_next) / 3600000.0 AS energy_kwh\nFROM (\n  SELECT\n    power_w,\n    EXTRACT(EPOCH FROM (\n      LEAD(recorded_at) OVER (ORDER BY recorded_at) - recorded_at\n    )) AS seconds_to_next\n  FROM\n    energy_readings\n  WHERE\n    sensor_id = 'solar_balcony'\n    AND recorded_at >= DATE_TRUNC('day', NOW())\n    AND recorded_at <= NOW()\n    AND power_w IS NOT NULL\n) sub\nWHERE\n  seconds_to_next IS NOT NULL",
+          "refId": "B",
+          "sql": {
+            "columns": [{ "parameters": [], "type": "function" }],
+            "groupBy": [
+              { "property": { "type": "string" }, "type": "groupBy" }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Solar",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "kwatth"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 26 },
+      "hideTimeOverride": false,
+      "id": 15,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "auto",
+        "showValue": "always",
+        "stacking": "normal",
+        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" },
+        "xField": "_time",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/solar-balcony/emeter/0/power\")\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> aggregateWindow(every: 24h, fn: (tables=<-, column) =>\r\n\t\t(tables\r\n\t\t\t|> integral(unit: 1h)\r\n\t\t\t|> map(fn: (r) =>\r\n\t\t\t\t({r with _value: r._value / 1000.0, _field: \"kWh\", units: \"kWh\"}))))\r\n",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": "now-30d",
+      "title": "Strom Verlauf letzte 30 Tage",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PDE6A885CF4E31BBE"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "watt"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byFrameRefID", "options": "B" },
+            "properties": [{ "id": "unit", "value": "watth" }]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 34 },
+      "id": 17,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "helius",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PDE6A885CF4E31BBE"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n  $__timeGroupAlias(recorded_at, $__interval),\n  AVG(power_w) AS power_w \nFROM \n  energy_readings \nWHERE \n  sensor_id = 'solar_balcony' \n  AND $__timeFilter(recorded_at) \n  AND power_w IS NOT NULL\nGROUP BY 1\nORDER BY 1 ASC",
+          "refId": "A",
+          "sql": {
+            "columns": [{ "parameters": [], "type": "function" }],
+            "groupBy": [
+              { "property": { "type": "string" }, "type": "groupBy" }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Solar Verlauf",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 80 }
+            ]
+          },
+          "unit": "kwatth"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 34 },
+      "hideTimeOverride": false,
+      "id": 16,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "auto",
+        "showValue": "always",
+        "stacking": "normal",
+        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" },
+        "xField": "_time",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "ae1g12sxbhqm8c" },
+          "hide": false,
+          "query": "from(bucket: \"rehalp92-electricity\")\r\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\r\n  |> filter(fn: (r) => r[\"topic\"] == \"shellies/solar-balcony/emeter/0/power\")\r\n  |> drop(columns: [\"host\", \"topic\", \"_measurement\"])\r\n  |> aggregateWindow(every: 30d, fn: (tables=<-, column) =>\r\n\t\t(tables\r\n\t\t\t|> integral(unit: 1h)\r\n\t\t\t|> map(fn: (r) =>\r\n\t\t\t\t({r with _value: r._value / 1000.0, _field: \"kWh\", units: \"kWh\"}))))\r\n",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": "now-3M/M",
+      "timeShift": "0M/M",
+      "title": "Strom Verlauf letzte 30 Tage",
+      "type": "barchart"
+    }
+  ],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": { "list": [] },
+  "time": { "from": "now/d", "to": "now/d" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Strom",
+  "uid": "hJM2FUL7k",
+  "version": 32
+}
